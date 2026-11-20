@@ -1,0 +1,26 @@
+# Dépendances du Microservice Python IA Biométrique 512D (Membre 1 - Chef de groupe)
+
+# Installation dans un environnement virtuel isolé (venv) :
+
+#   python -m venv venv
+
+#   venv\Scripts\activate      (Windows)  ou  source venv/bin/activate (Linux / Pi 5)
+
+#   pip install -r requirements.txt
+
+
+
+flask>=3.0.0
+
+flask-cors>=4.0.0
+
+numpy>=1.24.0
+
+opencv-python>=4.8.0
+
+mediapipe>=0.10.9
+
+onnxruntime>=1.16.0
+
+insightface>=0.7.3
+
