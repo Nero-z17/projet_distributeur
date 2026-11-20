@@ -1,51 +1,69 @@
 """
-Gestion de la LED d'éclairage du système DAB.
-Simulation sur PC et possibilité de gestion GPIO sur Raspberry Pi.
+PROJET DAB BIOMÉTRIQUE — Fichier : pi_hardware_bridge/pi_camera_led.py
+Rôle : Gestion de la LED d'éclairage (4000K-5500K) commandée par relais/MOSFET.
+Compatibilité :
+  1. Raspberry Pi 5 (OS Bookworm) : utilise `gpiozero` (natif sur Pi 5, contrairement à RPi.GPIO).
+  2. Raspberry Pi 3/4 (ancien OS) : fallback sur `RPi.GPIO`.
+  3. PC Windows / Mac / Linux     : mode simulation console automatique.
 """
 
 
 class LEDController:
+    """Pilote le relais de la LED d'éclairage du visage avec suivi d'état."""
 
-    def __init__(self, pin=18):
-
+    def __init__(self, pin: int = 18) -> None:
         self.pin = pin
-        self.gpio = None
+        self.is_on = False
+        self.backend = "SIMULATION_PC"
+        self._gpiozero_led = None
+        self._rpi_gpio = None
 
+        # 1. Priorité Raspberry Pi 5 : gpiozero (compatible puce RP1)
         try:
-            import RPi.GPIO as GPIO
+            from gpiozero import LED  # type: ignore
 
-            self.gpio = GPIO
+            self._gpiozero_led = LED(self.pin)
+            self.backend = "GPIOZERO_PI5"
+            print(f"[LED] gpiozero détecté (Raspberry Pi 5) sur GPIO {self.pin}.")
+            return
+        except Exception:
+            self._gpiozero_led = None
 
-            self.gpio.setmode(self.gpio.BCM)
-            self.gpio.setup(self.pin, self.gpio.OUT)
+        # 2. Fallback Raspberry Pi 3/4 : RPi.GPIO
+        try:
+            import RPi.GPIO as GPIO  # type: ignore
 
-            print("GPIO Raspberry Pi détecté.")
+            self._rpi_gpio = GPIO
+            self._rpi_gpio.setmode(self._rpi_gpio.BCM)
+            self._rpi_gpio.setup(self.pin, self._rpi_gpio.OUT)
+            self.backend = "RPI_GPIO"
+            print(f"[LED] RPi.GPIO détecté sur GPIO {self.pin}.")
+            return
+        except Exception:
+            self._rpi_gpio = None
 
-        except ImportError:
+        print(f"[LED] Mode PC : simulation de la LED (GPIO {self.pin}).")
 
-            print("Mode PC : simulation de la LED.")
+    def turn_on(self) -> None:
+        if self._gpiozero_led is not None:
+            self._gpiozero_led.on()
+        elif self._rpi_gpio is not None:
+            self._rpi_gpio.output(self.pin, self._rpi_gpio.HIGH)
+        self.is_on = True
+        print("[LED] Éclairage visage ALLUMÉ")
 
-    def turn_on(self):
+    def turn_off(self) -> None:
+        if self._gpiozero_led is not None:
+            self._gpiozero_led.off()
+        elif self._rpi_gpio is not None:
+            self._rpi_gpio.output(self.pin, self._rpi_gpio.LOW)
+        self.is_on = False
+        print("[LED] Éclairage visage ÉTEINT")
 
-        if self.gpio:
-
-            self.gpio.output(self.pin, self.gpio.HIGH)
-
-        print("LED ALLUMÉE")
-
-    def turn_off(self):
-
-        if self.gpio:
-
-            self.gpio.output(self.pin, self.gpio.LOW)
-
-        print("LED ÉTEINTE")
-
-    def cleanup(self):
-
-        if self.gpio:
-
-            self.gpio.output(self.pin, self.gpio.LOW)
-            self.gpio.cleanup(self.pin)
-
-        print("GPIO libéré.")
+    def cleanup(self) -> None:
+        self.turn_off()
+        if self._gpiozero_led is not None:
+            self._gpiozero_led.close()
+        elif self._rpi_gpio is not None:
+            self._rpi_gpio.cleanup(self.pin)
+        print("[LED] Ressources GPIO libérées.")

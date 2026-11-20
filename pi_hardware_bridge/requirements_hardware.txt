@@ -1,0 +1,10 @@
+# Dépendances du Pont Matériel Raspberry Pi 5 & Module ICT NDE1000 (Membre 2)
+
+# hardware_server.py utilise la bibliothèque standard Python (zéro Flask requis).
+
+
+
+pyserial>=3.5
+
+# Sur Raspberry Pi 5 (OS Bookworm), gpiozero est déjà préinstallé dans le système.
+
